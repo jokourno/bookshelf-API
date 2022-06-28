@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon ./src/server.js"
+    "start": "nodemon ./src/server.js",
+    "lint": "eslint ./"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,7 @@
     "nanoid": "^3.3.4"
   },
   "devDependencies": {
+    "eslint": "^8.18.0",
     "nodemon": "^2.0.16"
   }
 }

@@ -1,6 +1,6 @@
 const { nanoid } = require('nanoid')
 const books = require('./books')
-
+// import nanoid dari node_modules dan import books dari folder src
 const addBookHandler = (request, h) => {
     const {name, year, author, summary, publisher,
     pageCount, readPage, reading} 
@@ -28,7 +28,7 @@ const addBookHandler = (request, h) => {
         return response
     }
 // maksud kode di atas:
-// jika properti name tidak terdifinisi maka jalankan status, message, dan response code 
+// jika properti name tidak terdifinisi (atau client tidak mengisi) maka jalankan status, message, dan response code 
     if(readPage > pageCount){
         const response = h.response({
             status: "fail",
@@ -52,6 +52,7 @@ const addBookHandler = (request, h) => {
             message: "Buku berhasil ditambahkan",
             data: {
                 bookId: id,
+// kenapa bookId karena postman menguji dengan bookId
             }
         })
         response.code(201)
@@ -68,17 +69,111 @@ const addBookHandler = (request, h) => {
 }
 
 const getAllBookHandler = (request, h) => {
+    const { name, reading, finished} = request.query
+// request.query merupakan salah satu bagian dari framework hapi yang digunakan untuk melakukan query parameter
+// query name
+    if(name !== undefined){
+// jika name bukan tidak terdefinisi maka jalankan kode di bawah
+        const bookName = books.filter((n) => n.name.toLowerCase().includes(name.toLowerCase()))
+// pada books lakukan filter untuk n, setiap nama pada n dikecilkan yang termasuk nama input client yang dikecilkan
+//  kemudian data filter tersebut disimpan ke dalam variabel bookName lalu jalankan response di bawah
+        const response = h.response({
+            status: "success",
+            data: {
+                books: bookName.map((n) => ({
+// pada bookName hasil saringan sebelumnya lakukan map hanya untuk id, name, dan publisher kemudian tampilkan
+                    id: n.id,
+                    name: n.name,
+                    publisher: n.publisher
+                }))
+            }
+        })
+        response.code(200)
+        return response
+    }
+// query reading (0/1)
+    if(reading !== undefined){
+// menampilkan buku yang sedang tidak dibaca
+        if(reading === '0'){
+// pada framework hapi setiap input akan bernilia string sehingga 0 itu menjadi '0'
+            const bookUnread = books.filter((n) => n.reading === false)
+// karena data reading bernilai boolean maka lakukan filter dengan false untuk buku yang sedang tidak dibaca
+            const response = h.response({
+                status: "success",
+                data: {
+                    books: bookUnread.map((n) => ({
+                        id: n.id,
+                        name: n.name,
+                        publisher: n.publisher
+                    }))
+                }
+            })
+            response.code(200)
+            return response
+        }
+        // menampilkan buku yang sedang dibaca
+        if(reading === '1'){
+            const bookRead = books.filter((n) => n.reading === true )
+            const response = h.response({
+                status: "success",
+                data: {
+                    books: bookRead.map((n) => ({
+                        id: n.id,
+                        name: n.name,
+                        publisher: n.publisher,
+                    }))
+                }
+            })
+            response.code(200)
+            return response
+        }
+    }
+// query finished (0/1)
+    if(finished !== undefined){
+        // menampilkan buku belum selesai di baca
+        if(finished === '0'){
+            const bookUnfinished = books.filter((n) => n.finished === false)
+            const response = h.response ({
+                status: "success",
+                data: {
+                    books: bookUnfinished.map((n) => ({
+                        id: n.id,
+                        name: n.name,
+                        publisher: n.publisher
+                    }))
+                }
+            })
+            response.code(200)
+            return response
+        }
+        if(finished === '1'){
+            const bookFinished = books.filter((n) => n.finished === true)
+            const response = h.response({
+                status: "success",
+                data: {
+                    books: bookFinished.map((n) => ({
+                        id: n.id,
+                        name: n.name,
+                        publisher: n.publisher
+                    }))
+                }
+            })
+            response.code(200)
+            return response
+        }
+    }
+
     const response = h.response({
         status: "success",
         data: {
             books: books.map((n) => ({
                 id: n.id,
                 name: n.name,
-                publisher: n.publisher
-// kode di atas melakukan map terhadap 12 properti dan hanya menampilkan
-//  properti id, name, dan publisher
+                publisher: n.publisher,
             }))
         }
+// kode di atas melakukan map terhadap 12 properti dan hanya menampilkan
+//  properti id, name, dan publisher
     })
     response.code(200)
     return response
@@ -94,24 +189,13 @@ const getBookByIdHandler = (request, h) => {
 //      jika itu benar maka akan bernilai true dan jika salah maka akan bernilai false
 // karena book akan berbentuk array maka mengeluarkan nilai di dalamnya dengan indeks [0]
     if(book === true) {
-        const n = books[0]
+        const bookById = books.filter((n) => n.id === bookId)
         const response = h.response({
             status: "success",
             data: {
-                book:{
-                    id: n.id,
-                    name: n.name,
-                    year: n.year,
-                    author: n.author,
-                    summary: n.summary,
-                    publisher: n.publisher,
-                    pageCount: n.pageCount,
-                    readPage: n.readPage,
-                    finished: n.finished,
-                    reading: n.reading,
-                    insertedAt: n.insertedAt,
-                    updatedAt: n.updatedAt
-                }
+                book: bookById[0]
+// karena Id identik sehingga tidak perlu dilakukan mapping langsung tampilkan data hasil filter
+// namun data hasil filter masih berupa array dan untuk mengeluarkan objek dari array digunakan indeks [0]
                 }
             })
             response.code(200)
@@ -163,7 +247,8 @@ const editBookByIdHandler = (request, h) => {
     if((index !== -1) === true) {
         books[index] = {
             ...books[index],
-// menuju data books dengan index yang didapatkan sebelumnya
+// menuju data books dengan index yang didapatkan sebelumnya menggunakan spread operator
+//      kemudian yang dari request.payload sebelumnya akan mengisi data
             name,
             year,
             author,
@@ -188,7 +273,7 @@ const editBookByIdHandler = (request, h) => {
     })
     response.code(404)
     return response
-// jika index bernilai -1 maka jalankan response di atas
+// jika index tidak ada maka jalankan response di atas
 }
 
 const deleteBookByIdHandler = (request, h) => {
@@ -199,6 +284,7 @@ const deleteBookByIdHandler = (request, h) => {
 // index akan bernilai -1 atau index dari id tersebut
     if((index !== -1) === true) {
         books.splice(index, 1)
+// pada books lakukan splice mulai dari index sebanyak 1 penghapusan
         const response = h.response({
             status: "success",
             message: "Buku berhasil dihapus"
